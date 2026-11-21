@@ -27,4 +27,3 @@ export class CsrfMiddleware implements NestMiddleware {
     next();
   }
 }
-
