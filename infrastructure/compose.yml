@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local_root_only}
+      MYSQL_AUTH_PASSWORD: ${MYSQL_AUTH_PASSWORD:-local_auth_only}
+      MYSQL_EMPLOYEE_PASSWORD: ${MYSQL_EMPLOYEE_PASSWORD:-local_employee_only}
+      MYSQL_ATTENDANCE_PASSWORD: ${MYSQL_ATTENDANCE_PASSWORD:-local_attendance_only}
+      MYSQL_DOCUMENT_PASSWORD: ${MYSQL_DOCUMENT_PASSWORD:-local_document_only}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-demo_local}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-demo_local_only}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+volumes:
+  mysql_data:
+  rabbitmq_data:

@@ -1,8 +1,14 @@
 # Nestjs specific
-/dist
-/node_modules
+dist/
+node_modules/
 /build
 /tmp
+
+# OS
+.DS_Store
+
+# Tooling
+.serena/
 
 # Logs
 logs
