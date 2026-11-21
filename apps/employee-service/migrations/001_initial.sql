@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS employees (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  employee_number VARCHAR(32) NOT NULL UNIQUE,
+  full_name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  department VARCHAR(100) NOT NULL,
+  position VARCHAR(100) NOT NULL,
+  status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+  version BIGINT NOT NULL DEFAULT 1,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  INDEX ix_employees_status_name (status, full_name)
+);
+CREATE TABLE IF NOT EXISTS outbox_events (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  event_type VARCHAR(64) NOT NULL,
+  payload_json JSON NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  published_at DATETIME(3) NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  INDEX ix_outbox_pending (published_at, created_at)
+);
