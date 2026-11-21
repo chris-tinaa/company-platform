@@ -1,6 +1,7 @@
 # Dokumentasi Teknis
 > **📘 [Arsitektur dan Design](https://docs.google.com/document/d/1lRj4CdVHBjXFvckcGJ9TpQ_D7KdfeC_XoNJMvu1LfuE/edit?usp=sharing)** 
-Klik link di atas untuk mengunjungi
+
+Klik link di atas untuk mengunjungi dokumentasi
 
 # Platform Perusahaan — Absensi WFH
 
