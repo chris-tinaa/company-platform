@@ -78,7 +78,7 @@ export default function ActivateAccountModal({ employee, onClose, onActivated, m
     {mode === 'reactivation' && <Alert type={reactivationStarted ? 'info' : 'warning'} showIcon style={{ marginBottom: 16 }}
       message={reactivationStarted ? 'Menunggu aktivasi akun' : 'Kata sandi lama tidak berlaku lagi'}
       description={reactivationStarted ? 'Karyawan sudah aktif. Akun login menunggu event RabbitMQ dan harus diberi kata sandi baru. Tekan lagi untuk melanjutkan.' : 'Data karyawan akan diaktifkan melalui Employee Service, kemudian akun login akan diaktifkan menggunakan kata sandi baru.'} />}
-    <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="Rahasiakan kata sandi" description="Sampaikan kata sandi kepada karyawan melalui kanal yang aman. Kata sandi tidak dapat ditampilkan kembali setelah disimpan." />
+    <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="Rahasiakan kata sandi" description="Kata sandi tidak dapat ditampilkan kembali setelah disimpan." />
     <Form form={form} layout="vertical" onFinish={(values) => void submit(values)}>
       <Form.Item name="password" label={mode === 'reactivation' ? 'Kata Sandi Baru' : 'Kata Sandi Awal'} rules={[
         { required: true, message: 'Kata sandi awal wajib diisi' },
