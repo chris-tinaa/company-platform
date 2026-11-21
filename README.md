@@ -5,14 +5,14 @@ Klik link di atas untuk mengunjungi dokumentasi
 
 # Platform Perusahaan — Absensi WFH
 
+Monorepo pnpm dengan NestJS microservices dan satu frontend (React + Vite)
+
 <img width="1465" height="760" alt="image" src="https://github.com/user-attachments/assets/b06c663d-d675-4051-a212-e1baf1033e2c" />
 
 <img width="1466" height="757" alt="image" src="https://github.com/user-attachments/assets/ba93ff53-b362-4292-8f3a-c29da15089bd" />
 
 <img width="1460" height="759" alt="image" src="https://github.com/user-attachments/assets/1f831caf-3f59-4977-ac49-3a2dd3abcc21" />
 
-
-Monorepo pnpm dengan NestJS microservices dan satu frontend (React + Vite)
 
 ## Struktur
 
