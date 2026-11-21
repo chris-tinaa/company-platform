@@ -70,6 +70,11 @@ export class AuthService {
     return { id: row.id, employeeId: row.employee_id, userId: row.username, role: row.role };
   }
 
+  async listRoles(actor: CurrentUser) {
+    if (actor.role !== 'HR') throw new ForbiddenException('Akses hanya untuk HR');
+    return this.users.listRoles();
+  }
+
   async accountStatus(employeeId: string, actor: CurrentUser): Promise<string> {
     if (actor.role !== 'HR') throw new ForbiddenException('Akses hanya untuk HR');
     return this.users.accountStatus(employeeId);
@@ -117,10 +122,10 @@ export class AuthService {
       throw new ServiceUnavailableException('Respons status karyawan tidak valid');
     }
     if (!payload || typeof payload !== 'object' || !('data' in payload) || !payload.data ||
-      typeof payload.data !== 'object' || !('eligible' in payload.data) ||
-      typeof payload.data.eligible !== 'boolean' || !('sessionGeneration' in payload.data) ||
-      !(payload.data.sessionGeneration === null ||
-        (typeof payload.data.sessionGeneration === 'number' && Number.isSafeInteger(payload.data.sessionGeneration) && payload.data.sessionGeneration > 0))) {
+        typeof payload.data !== 'object' || !('eligible' in payload.data) ||
+        typeof payload.data.eligible !== 'boolean' || !('sessionGeneration' in payload.data) ||
+        !(payload.data.sessionGeneration === null ||
+          (typeof payload.data.sessionGeneration === 'number' && Number.isSafeInteger(payload.data.sessionGeneration) && payload.data.sessionGeneration > 0))) {
       throw new ServiceUnavailableException('Respons status karyawan tidak valid');
     }
     return { eligible: payload.data.eligible, sessionGeneration: payload.data.sessionGeneration as number | null };

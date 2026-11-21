@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, ParseUUIDPipe, Post, Req, Res } from '@nestjs/common';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Request, Response } from 'express';
+import { ApiCookieAuth, ApiExcludeController, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
 import { ActivateAccountDto } from './activate-account.dto';
@@ -11,10 +12,12 @@ function requestId(): string {
   return randomUUID();
 }
 
+@ApiTags('Authentication / Roles')
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @ApiOperation({ summary: 'Sign in, sets an HttpOnly session cookie' })
   @Post('login')
   @HttpCode(200)
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
@@ -25,6 +28,8 @@ export class AuthController {
     return { data: { expiresIn: 900, user: result.user }, requestId: requestId() };
   }
 
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Validate current session' })
   @Get('me')
   async me(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     response.setHeader('Cache-Control', 'no-store');
@@ -32,6 +37,7 @@ export class AuthController {
     return { data: { user }, requestId: requestId() };
   }
 
+  @ApiOperation({ summary: 'Log out, clear HttpOnly cookie' })
   @Post('logout')
   @HttpCode(204)
   logout(@Res({ passthrough: true }) response: Response): void {
@@ -40,6 +46,16 @@ export class AuthController {
     response.setHeader('Cache-Control', 'no-store');
   }
 
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'List fixed HR/EMPLOYEE role catalog (HR only)' })
+  @Get('roles')
+  async roles(@Req() request: Request) {
+    const actor = await this.auth.currentUser(request.headers.cookie);
+    return { data: await this.auth.listRoles(actor), requestId: requestId() };
+  }
+
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Check employee account activation status (HR only)' })
   @Get('accounts/:employeeId/status')
   async status(@Param('employeeId') employeeId: string, @Req() request: Request) {
     const actor = await this.auth.currentUser(request.headers.cookie);
@@ -47,6 +63,8 @@ export class AuthController {
     return { data: { status }, requestId: requestId() };
   }
 
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'HR sets initial/new password to activate a PENDING employee account' })
   @Post('accounts/:employeeId/activate')
   @HttpCode(200)
   async activate(
@@ -62,6 +80,7 @@ export class AuthController {
   }
 }
 
+@ApiExcludeController()
 @Controller('internal/auth')
 export class InternalAuthController {
   constructor(private readonly auth: AuthService) {}

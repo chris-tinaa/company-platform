@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Form, Grid, Input, Modal, Pagination, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Empty, Form, Grid, Input, Modal, Pagination, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { EditOutlined, PlusOutlined, StopOutlined, KeyOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import ActivateAccountModal from './ActivateAccountModal';
+import MasterDataModal, { loadDepartments, loadPositions } from './MasterDataModal';
 import { api, getApiError } from '../../shared/api/http';
 
-type Employee = { id: string; employee_number: string; full_name: string; email: string; department: string; position: string; status: 'ACTIVE' | 'INACTIVE'; version: number };
+type Employee = { id: string; employee_number: string; full_name: string; email: string; department_id: string; position_id: string; department: string; position: string; position_level: number; status: 'ACTIVE' | 'INACTIVE'; version: number };
 type Page = { items: Employee[]; total: number; page: number; pageSize: number };
-type EmployeeForm = { employeeNumber: string; fullName: string; email: string; department: string; position: string };
+type EmployeeForm = { employeeNumber: string; fullName: string; email: string; departmentId: string; positionId: string };
 
 const { useBreakpoint } = Grid;
 
@@ -19,11 +20,14 @@ export default function EmployeeDirectoryPage() {
   const [keyword, setKeyword] = useState('');
   const [editing, setEditing] = useState<Employee | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [masterOpen, setMasterOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activating, setActivating] = useState<Employee | null>(null);
   const [activationMode, setActivationMode] = useState<'initial' | 'reactivation'>('initial');
   const [checkingAccount, setCheckingAccount] = useState<string | null>(null);
   const [form] = Form.useForm<EmployeeForm>();
+  const departments = useQuery({ queryKey: ['departments'], queryFn: loadDepartments });
+  const positions = useQuery({ queryKey: ['positions'], queryFn: loadPositions });
 
   const query = useQuery({ queryKey: ['employees', page, keyword], queryFn: async () => {
     const response = await api.get<{ data: Page }>('/employees', { params: { page, pageSize: 10, search: keyword } });
@@ -32,7 +36,7 @@ export default function EmployeeDirectoryPage() {
 
   useEffect(() => {
     if (!modalOpen) return;
-    if (editing) form.setFieldsValue({ employeeNumber: editing.employee_number, fullName: editing.full_name, email: editing.email, department: editing.department, position: editing.position });
+    if (editing) form.setFieldsValue({ employeeNumber: editing.employee_number, fullName: editing.full_name, email: editing.email, departmentId: editing.department_id, positionId: editing.position_id });
     else form.resetFields();
   }, [editing, modalOpen, form]);
 
@@ -45,7 +49,7 @@ export default function EmployeeDirectoryPage() {
     try {
       if (editing) await api.patch(`/employees/${editing.id}`, {
         version: Number(editing.version), fullName: values.fullName, email: values.email,
-        department: values.department, position: values.position,
+        departmentId: values.departmentId, positionId: values.positionId,
       });
       else await api.post('/employees', values);
       message.success(editing ? 'Data karyawan diperbarui' : 'Karyawan baru berhasil dibuat');
@@ -113,7 +117,8 @@ export default function EmployeeDirectoryPage() {
 
   return <div className="content-container">
     <div className="page-heading"><div><Typography.Title level={2}>Data Karyawan</Typography.Title><Typography.Paragraph type="secondary">Kelola data dan status karyawan. Akun baru berstatus menunggu aktivasi.</Typography.Paragraph></div>
-      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Tambah Karyawan</Button></div>
+      <Space wrap><Button onClick={() => setMasterOpen(true)}>Master Departemen & Jabatan</Button>
+      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Tambah Karyawan</Button></Space></div>
     <Card>
       <Space className="filters"><Input.Search placeholder="Cari nama atau nomor karyawan" allowClear value={search} onChange={(event) => setSearch(event.target.value)} onSearch={() => { setKeyword(search); setPage(1); }} enterButton="Cari" /></Space>
       {query.isError && <Alert type="error" message={getApiError(query.error)} action={<Button onClick={() => void query.refetch()}>Coba Lagi</Button>} />}
@@ -122,13 +127,14 @@ export default function EmployeeDirectoryPage() {
         { title: 'Nama', dataIndex: 'full_name', key: 'name' },
         { title: 'Email', dataIndex: 'email', key: 'email' },
         { title: 'Departemen', dataIndex: 'department', key: 'department' },
+        { title: 'Jabatan / Level', key: 'position', render: (_, employee) => `${employee.position} (Level ${employee.position_level})` },
         { title: 'Status', dataIndex: 'status', key: 'status', render: (value: string) => <Tag color={value === 'ACTIVE' ? 'green' : 'red'}>{value === 'ACTIVE' ? 'Aktif' : 'Tidak Aktif'}</Tag> },
         { title: 'Tindakan', key: 'action', render: (_, employee) => actions(employee) },
       ]} /> : <div className="employee-cards">
         {query.data?.items.length === 0 && <Empty description="Belum ada karyawan" />}
         {(query.data?.items ?? []).map((employee) => <Card size="small" key={employee.id} title={employee.full_name} extra={<Tag color={employee.status === 'ACTIVE' ? 'green' : 'red'}>{employee.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif'}</Tag>}>
           <Typography.Paragraph style={{ marginBottom: 4 }}>{employee.employee_number}</Typography.Paragraph>
-          <Typography.Paragraph type="secondary">{employee.department} · {employee.position}</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">{employee.department} · {employee.position} (Level {employee.position_level})</Typography.Paragraph>
           {actions(employee)}
         </Card>)}
       </div>}
@@ -136,13 +142,24 @@ export default function EmployeeDirectoryPage() {
     </Card>
     <Modal open={modalOpen} title={editing ? 'Ubah Karyawan' : 'Tambah Karyawan'} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okText="Simpan" cancelText="Batal" confirmLoading={saving} destroyOnHidden>
       <Form layout="vertical" form={form} onFinish={(values) => void save(values)} className="employee-form">
+        {(departments.isError || positions.isError) && <Alert style={{ marginBottom: 16 }} type="error" showIcon
+          message="Master departemen atau jabatan gagal dimuat" description="Pastikan Employee Service berjalan, lalu muat ulang halaman." />}
         {!editing && <Form.Item label="Nomor Karyawan" name="employeeNumber" rules={[{ required: true, message: 'Nomor karyawan wajib diisi' }, { max: 32 }]}><Input /></Form.Item>}
         <Form.Item label="Nama Lengkap" name="fullName" rules={[{ required: true, message: 'Nama wajib diisi' }, { max: 120 }]}><Input /></Form.Item>
         <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email', message: 'Email tidak valid' }]}><Input type="email" /></Form.Item>
-        <Form.Item label="Departemen" name="department" rules={[{ required: true, message: 'Departemen wajib diisi' }]}><Input /></Form.Item>
-        <Form.Item label="Jabatan" name="position" rules={[{ required: true, message: 'Jabatan wajib diisi' }]}><Input /></Form.Item>
+        <Form.Item label="Departemen" name="departmentId" rules={[{ required: true, message: 'Departemen wajib dipilih' }]}>
+          <Select loading={departments.isLoading} placeholder="Pilih departemen" showSearch optionFilterProp="label"
+            options={(departments.data ?? []).filter((d) => Boolean(d.is_active) || d.id === editing?.department_id).map((d) =>
+              ({ value: d.id, label: `${d.name}${d.is_active ? '' : ' (nonaktif)'}`, disabled: !d.is_active }))} />
+        </Form.Item>
+        <Form.Item label="Jabatan" name="positionId" rules={[{ required: true, message: 'Jabatan wajib dipilih' }]}>
+          <Select loading={positions.isLoading} placeholder="Pilih jabatan" showSearch optionFilterProp="label"
+            options={(positions.data ?? []).filter((p) => Boolean(p.is_active) || p.id === editing?.position_id).map((p) =>
+              ({ value: p.id, label: `${p.name} (Level ${p.level})${p.is_active ? '' : ' (nonaktif)'}`, disabled: !p.is_active }))} />
+        </Form.Item>
       </Form>
     </Modal>
+    <MasterDataModal open={masterOpen} onClose={() => setMasterOpen(false)} />
     {activating && <ActivateAccountModal
       employee={activating}
       mode={activationMode}

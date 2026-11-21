@@ -1,13 +1,16 @@
 import { Body, Controller, Get, Header, Headers, Post, Query, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { ApiBody, ApiConsumes, ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { requireUser } from '../security/current-user';
 import { AttendanceService, type CheckInPayload } from './attendance.service';
 
+@ApiTags('Attendance')
+@ApiCookieAuth('access_token')
 @Controller('api/v1/attendance')
 export class AttendanceController {
-  constructor(private readonly attendance: AttendanceService) { }
+  constructor(private readonly attendance: AttendanceService) {}
 
   @Get('location/reverse')
   @Header('Cache-Control', 'no-store')
@@ -20,6 +23,12 @@ export class AttendanceController {
     return { data: await this.attendance.reverseLocation(user, latitude, longitude), requestId: randomUUID() };
   }
 
+  @ApiOperation({ summary: 'Employee WFH check-in with live camera photo + GPS; one per Jakarta day' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', required: ['photo', 'latitude', 'longitude', 'locationAccuracy'], properties: {
+    photo: { type: 'string', format: 'binary' }, latitude: { type: 'number', example: -6.2 },
+    longitude: { type: 'number', example: 106.816 }, locationAccuracy: { type: 'number', example: 12 },
+  } } })
   @Post('check-in')
   @UseInterceptors(FileInterceptor('photo', { limits: { fileSize: 5_242_880, files: 1, fields: 3 } }))
   async checkIn(

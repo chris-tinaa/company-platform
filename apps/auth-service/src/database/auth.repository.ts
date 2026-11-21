@@ -36,7 +36,7 @@ export class AuthRepository implements OnModuleDestroy {
 
   async findByUsername(username: string): Promise<UserRow | null> {
     const [rows] = await this.pool.execute<UserRow[]>(
-      'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE username = ? LIMIT 1',
+      'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.username = ? LIMIT 1',
       [username],
     );
     return rows[0] ?? null;
@@ -44,7 +44,7 @@ export class AuthRepository implements OnModuleDestroy {
 
   async findById(id: string): Promise<UserRow | null> {
     const [rows] = await this.pool.execute<UserRow[]>(
-      'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE id = ? LIMIT 1',
+      'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1',
       [id],
     );
     return rows[0] ?? null;
@@ -52,7 +52,7 @@ export class AuthRepository implements OnModuleDestroy {
 
   async findByEmployeeId(employeeId: string): Promise<UserRow | null> {
     const [rows] = await this.pool.execute<UserRow[]>(
-      'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE employee_id = ? LIMIT 1',
+      'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.employee_id = ? LIMIT 1',
       [employeeId],
     );
     return rows[0] ?? null;
@@ -74,12 +74,12 @@ export class AuthRepository implements OnModuleDestroy {
       );
       const lifecycleStatus: LifecycleStatus = lifecycleRows[0]?.status ?? null;
       const [accounts] = await connection.execute<UserRow[]>(
-        'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE employee_id = ? FOR UPDATE', [employeeId],
+        'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.employee_id = ? FOR UPDATE', [employeeId],
       );
       const account = accounts[0];
       if (!account || account.role !== 'EMPLOYEE' ||
-        Number(account.session_generation) !== expectedSessionGeneration ||
-        !canActivatePendingAccount(account.status, lifecycleStatus)) {
+          Number(account.session_generation) !== expectedSessionGeneration ||
+          !canActivatePendingAccount(account.status, lifecycleStatus)) {
         throw new ConflictException('Akun tidak PENDING atau status karyawan tidak memenuhi syarat');
       }
       const [updated] = await connection.execute<ResultSetHeader>(
@@ -120,7 +120,7 @@ export class AuthRepository implements OnModuleDestroy {
         return false;
       }
       const [existingRows] = await connection.execute<UserRow[]>(
-        'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE employee_id = ? FOR UPDATE',
+        'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.employee_id = ? FOR UPDATE',
         [event.employeeId],
       );
       const previous = existingRows[0];
@@ -129,7 +129,7 @@ export class AuthRepository implements OnModuleDestroy {
         throw new ConflictException('Event reaktivasi tidak memiliki versi sesi');
       }
       if (event.type !== 'employee.created' && event.sessionGeneration !== undefined && previous &&
-        generation <= Number(previous.session_generation)) {
+          generation <= Number(previous.session_generation)) {
         throw new ConflictException('Versi sesi pada event tidak lebih baru');
       }
       const lifecycleStatus = event.type === 'employee.deactivated' ? 'INACTIVE' : 'ACTIVE';
@@ -139,11 +139,11 @@ export class AuthRepository implements OnModuleDestroy {
       );
       const newStatus = nextEventStatus(event.type);
       await connection.execute(
-        'INSERT IGNORE INTO users (id, employee_id, username, password_hash, role, status, session_generation) VALUES (?, ?, ?, NULL, ?, ?, ?)',
+        'INSERT IGNORE INTO users (id, employee_id, username, password_hash, role_id, status, session_generation) VALUES (?, ?, ?, NULL, (SELECT id FROM roles WHERE code = ?), ?, ?)',
         [randomUUID(), event.employeeId, event.employeeNumber, 'EMPLOYEE', newStatus, generation],
       );
       const [accounts] = await connection.execute<UserRow[]>(
-        'SELECT id, employee_id, username, password_hash, role, status, session_generation FROM users WHERE employee_id = ? FOR UPDATE',
+        'SELECT u.id, u.employee_id, u.username, u.password_hash, r.code AS role, u.status, u.session_generation FROM users u JOIN roles r ON r.id = u.role_id WHERE u.employee_id = ? FOR UPDATE',
         [event.employeeId],
       );
       if (!accounts[0] || accounts[0].role !== 'EMPLOYEE' || accounts[0].username !== event.employeeNumber) {
@@ -151,7 +151,7 @@ export class AuthRepository implements OnModuleDestroy {
       }
       if (event.type !== 'employee.created') {
         await connection.execute(
-          'UPDATE users SET status = ?, session_generation = ? WHERE employee_id = ? AND role = ?',
+          'UPDATE users SET status = ?, session_generation = ? WHERE employee_id = ? AND role_id = (SELECT id FROM roles WHERE code = ?)' ,
           [newStatus, generation, event.employeeId, 'EMPLOYEE'],
         );
       }
@@ -163,6 +163,13 @@ export class AuthRepository implements OnModuleDestroy {
     } finally {
       connection.release();
     }
+  }
+
+  async listRoles(): Promise<Array<{ id: string; code: 'HR' | 'EMPLOYEE'; name: string }>> {
+    const [rows] = await this.pool.query<(RowDataPacket & { id: string; code: 'HR' | 'EMPLOYEE'; name: string })[]>(
+      'SELECT id, code, name FROM roles ORDER BY code',
+    );
+    return rows;
   }
 
   async ping(): Promise<boolean> {

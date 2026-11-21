@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { ApiCookieAuth, ApiExcludeController, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { requireInternalKey, requireUser } from '../security/current-user';
 import { EmployeeRepository } from '../database/employee.repository';
@@ -7,16 +8,20 @@ import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './create-employee.dto';
 import { UpdateEmployeeDto } from './update-employee.dto';
 
+@ApiTags('Employees')
+@ApiCookieAuth('access_token')
 @Controller('api/v1/employees')
 export class EmployeesController {
   constructor(private readonly employees: EmployeesService) {}
 
   @Get()
+  @ApiOperation({ summary: 'List employees (HR)' })
   async list(@Req() request: Request, @Query('page') page = '1', @Query('pageSize') limit = '20', @Query('search') search = '') {
     await requireUser(request, 'HR');
     return { data: await this.employees.list(page, limit, search), requestId: randomUUID() };
   }
 
+  @ApiOperation({ summary: 'Get employee with department, position and level' })
   @Get(':id')
   async get(@Req() request: Request, @Param('id') id: string) {
     await requireUser(request, 'HR');
@@ -24,12 +29,14 @@ export class EmployeesController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create employee using departmentId and positionId' })
   async create(@Req() request: Request, @Body() body: CreateEmployeeDto) {
     await requireUser(request, 'HR');
     return { data: await this.employees.create(body), requestId: randomUUID() };
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update employee master references (HR)' })
   async update(@Req() request: Request, @Param('id') id: string, @Body() body: UpdateEmployeeDto) {
     await requireUser(request, 'HR');
     return { data: await this.employees.update(id, body), requestId: randomUUID() };
@@ -48,6 +55,7 @@ export class EmployeesController {
   }
 }
 
+@ApiExcludeController()
 @Controller('internal/employees')
 export class InternalEmployeesController {
   constructor(private readonly repo: EmployeeRepository) {}

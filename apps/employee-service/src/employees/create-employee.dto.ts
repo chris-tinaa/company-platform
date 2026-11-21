@@ -1,23 +1,20 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEmployeeDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(32)
+  @ApiProperty({ example: 'EMP002', maxLength: 32 })
+  @IsString() @IsNotEmpty() @MaxLength(32)
   employeeNumber!: string;
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(120)
+  @ApiProperty({ example: 'Budi Santoso', maxLength: 120 })
+  @IsString() @IsNotEmpty() @MaxLength(120)
   fullName!: string;
-  @IsEmail()
-  @MaxLength(190)
+  @ApiProperty({ example: 'budi@example.com' })
+  @IsEmail() @MaxLength(190)
   email!: string;
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  department!: string;
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  position!: string;
+  @ApiProperty({ format: 'uuid', description: 'Department master ID (active)' })
+  @IsUUID()
+  departmentId!: string;
+  @ApiProperty({ format: 'uuid', description: 'Position master ID (active)' })
+  @IsUUID()
+  positionId!: string;
 }
