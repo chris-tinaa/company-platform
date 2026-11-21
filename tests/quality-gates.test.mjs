@@ -17,7 +17,7 @@ test("backend services use pinned NestJS and have no ORM", () => {
 test("root release is initialized and future scripts are not fake successes", () => {
   const root = readJson("package.json");
   assert.equal(root.version, "0.1.0");
-  assert.match(root.scripts["test:integration"], /not-implemented/);
+  assert.match(root.scripts["test:integration"], /api-smoke/);
   assert.doesNotMatch(
     root.scripts["test:integration"],
     /--if-present|echo\s+pass/,

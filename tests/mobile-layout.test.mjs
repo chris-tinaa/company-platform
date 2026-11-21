@@ -23,3 +23,12 @@ test("photo compression happens before upload, not after", () => {
   assert.match(compression, /image\/jpeg/);
   assert.match(compression, /5_242_880/);
 });
+
+test("mobile image compression has an Image fallback for unsupported createImageBitmap", () => {
+  const source = readFileSync(
+    "apps/employee-portal/src/shared/media/compress-photo.ts",
+    "utf8",
+  );
+  assert.match(source, /new Image\(/);
+  assert.match(source, /URL\.revokeObjectURL/);
+});
