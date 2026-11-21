@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
@@ -13,7 +14,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
   app.enableShutdownHooks();
-  const port = Number(process.env.PORT ?? 3001);
+  const port = Number(process.env.SERVICE_PORT ?? process.env.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error("PORT tidak valid");
   await app.listen(port, "127.0.0.1");
