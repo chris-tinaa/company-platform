@@ -7,19 +7,24 @@
     "node": ">=22.12 <23"
   },
   "scripts": {
+    "setup:local": "node scripts/setup-local.mjs",
     "dev": "pnpm --parallel --filter @company/* dev",
     "dev:infra": "docker compose -f infrastructure/compose.yml up -d",
     "build": "pnpm -r --filter @company/* build",
     "build:web": "pnpm --filter @company/employee-portal build",
     "typecheck": "pnpm -r --filter @company/* typecheck",
     "lint": "pnpm exec eslint apps packages",
-    "test:unit": "node --test tests/*.test.mjs",
+    "test:unit": "node --no-warnings --experimental-strip-types --test tests/*.test.mjs tests/*.test.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm build",
-    "db:migrate": "node scripts/not-implemented.mjs db:migrate",
-    "db:seed": "node scripts/not-implemented.mjs db:seed",
-    "test:integration": "node scripts/not-implemented.mjs test:integration",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "test:integration": "node --no-warnings --experimental-strip-types --test tests/api-smoke.integration.mjs tests/location-address-migration.integration.ts",
     "test:e2e": "node scripts/not-implemented.mjs test:e2e",
-    "test:smoke": "node scripts/not-implemented.mjs test:smoke"
+    "test:smoke": "node --test tests/api-smoke.integration.mjs",
+    "test:activation:integration": "node --test tests/account-activation.integration.mjs",
+    "keys:generate": "node scripts/generate-keys.mjs",
+    "diagnose:auth": "node scripts/diagnose-auth.mjs",
+    "test:reactivation:integration": "node --test tests/account-reactivation.integration.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3",
@@ -28,5 +33,10 @@
     "typescript-eslint": "8.46.2",
     "@types/node": "22.18.9",
     "@nestjs/cli": "11.0.10"
+  },
+  "dependencies": {
+    "mysql2": "3.24.6",
+    "bcryptjs": "3.0.3",
+    "dotenv": "17.4.2"
   }
 }
