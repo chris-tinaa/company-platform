@@ -1,7 +1,13 @@
 # Dokumentasi Teknis
 > **📘 [Arsitektur dan Design](https://docs.google.com/document/d/1lRj4CdVHBjXFvckcGJ9TpQ_D7KdfeC_XoNJMvu1LfuE/edit?usp=sharing)** 
 
-Klik link di atas untuk mengunjungi dokumentasi
+Klik link di atas untuk mengunjungi dokumentasi lengkap
+
+### Overview 
+
+<img width="1560" height="2563" alt="Coret" src="https://github.com/user-attachments/assets/3581c671-08d8-41e8-9179-77bc9046f924" />
+
+
 
 # Platform Perusahaan — Absensi WFH
 
